@@ -40,12 +40,8 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry;
 import io.flutter.plugin.common.PluginRegistry.ActivityResultListener;
-import io.flutter.plugin.common.PluginRegistry.Registrar;
 import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener;
-import io.flutter.plugin.common.PluginRegistry.ViewDestroyListener;
-import io.flutter.view.FlutterNativeView;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -60,8 +56,8 @@ public class WifiIotPlugin
         ActivityAware,
         MethodCallHandler,
         EventChannel.StreamHandler,
-        PluginRegistry.RequestPermissionsResultListener,
-        ActivityResultListener {
+        ActivityResultListener,
+        RequestPermissionsResultListener {
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
   private MethodChannel channel;
@@ -135,40 +131,16 @@ public class WifiIotPlugin
     moWiFiAPManager = null;
   }
 
-  /** Plugin registration. This is used for registering with v1 Android embedding. */
-  public static void registerWith(Registrar registrar) {
-    final MethodChannel channel = new MethodChannel(registrar.messenger(), "wifi_iot");
-    final EventChannel eventChannel =
-        new EventChannel(registrar.messenger(), "plugins.wififlutter.io/wifi_scan");
-    final WifiIotPlugin wifiIotPlugin = new WifiIotPlugin();
-    wifiIotPlugin.initWithActivity(registrar.activity());
-    wifiIotPlugin.initWithContext(registrar.activeContext());
-    eventChannel.setStreamHandler(wifiIotPlugin);
-    channel.setMethodCallHandler(wifiIotPlugin);
-
-    registrar.addViewDestroyListener(
-        new ViewDestroyListener() {
-          @Override
-          public boolean onViewDestroy(FlutterNativeView view) {
-            wifiIotPlugin.cleanup();
-            return false;
-          }
-        });
-    registrar.addRequestPermissionsResultListener(wifiIotPlugin);
-    registrar.addActivityResultListener(wifiIotPlugin);
-  }
-
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
     // initialize method and event channel and set handlers
     channel = new MethodChannel(binding.getBinaryMessenger(), "wifi_iot");
-    eventChannel =
-        new EventChannel(binding.getBinaryMessenger(), "plugins.wififlutter.io/wifi_scan");
+    eventChannel = new EventChannel(binding.getBinaryMessenger(), "plugins.wififlutter.io/wifi_scan");
     channel.setMethodCallHandler(this);
     eventChannel.setStreamHandler(this);
 
-    // initializeWithContext
-    initWithContext(binding.getApplicationContext());
+    final Context context = binding.getApplicationContext();
+    initWithContext(context);
   }
 
   @Override
